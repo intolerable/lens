@@ -38,6 +38,7 @@ module Control.Lens.TH
   , declareLensesWith
   , defaultFieldRules
   , camelCaseFields
+  , strictNameFields
   , underscoreFields
   , LensRules
   , DefName(..)
@@ -587,6 +588,21 @@ camelCaseNamer _ fields field = maybeToList $ do
         leading_      xs  = (False, xs)
         (leading, trailing) = leading_ field'
 
+strictNameFields :: LensRules
+strictNameFields = defaultFieldRules & lensField .~ strictCamelCaseNamer
+
+strictCamelCaseNamer :: Name -> [Name] -> Name -> [DefName]
+strictCamelCaseNamer typeName fields field = maybeToList $ do
+  basicField <- stripPrefix prefix field'
+  return $ MethodName (mkName $ "Has" ++ basicField) (mkName lens)
+  where
+    field' = nameBase field
+    fields' = map nameBase fields
+    typeName' = nameBase typeName
+    prefix = (if shouldUnderscore then "_" else "") ++ overHead toLower typeName'
+    lensName = overHead toLower basicField
+    className = "Has" ++ basicField
+    shouldUnderscore = any ("_" `isPrefixOf`) fields'
 
 -- | Generate overloaded field accessors.
 --
